@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Pembagian Warisan Tanah (Pro)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        #canvas-container { touch-action: none; overscroll-behavior: none; }
+        canvas { touch-action: none; cursor: crosshair; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-200 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-white mb-2">Simulasi Interaktif Pembagian Tanah</h1>
+            <p class="text-slate-400 text-sm md:text-base">Tarik titik sudut (putih) untuk mengubah bentuk tanah. Tarik titik pembagi (berwarna) untuk menyesuaikan porsi. Anda juga bisa menggeser kanvas (klik & seret latar belakang) dan mengganti nama plot secara bebas.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-slate-800 p-2 md:p-4 rounded-xl border border-slate-700 shadow-2xl flex flex-col">
+                <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between px-2 gap-4">
+                    <div>
+                        <div class="text-sm font-semibold text-slate-300">Total Luas Aktual:</div>
+                        <div id="actualTotalArea" class="text-2xl font-bold text-emerald-400 font-mono">0 m²</div>
+                    </div>
+                    <div class="text-xs text-slate-400 bg-slate-900/60 px-3 py-2 rounded border border-slate-700">
+                        💡 <b>Tips:</b> Klik & seret area kosong untuk menggeser peta. Gunakan scroll mouse atau tombol +/- untuk zoom.
+                    </div>
+                </div>
+
+                <div id="canvas-container" class="relative w-full h-[600px] bg-slate-900 rounded-lg border border-slate-700 overflow-hidden flex-grow">
+                    
+                    <!-- Zoom Controls -->
+                    <div class="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-slate-800/80 p-2 rounded-lg backdrop-blur-sm border border-slate-600">
+                        <button id="zoomInBtn" class="w-8 h-8 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded font-bold text-lg transition-colors" title="Zoom In">
+                            +
+                        </button>
+                        <button id="zoomOutBtn" class="w-8 h-8 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded font-bold text-lg transition-colors" title="Zoom Out">
+                            -
+                        </button>
+                    </div>
+
+                    <canvas id="landCanvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+                </div>
+                <div class="mt-3 text-xs text-slate-500 text-center">
+                    *Garis luar menunjukkan panjang sisi asli, garis dalam menampilkan dimensi per bagian.
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-xl flex flex-col gap-6">
+                <h2 class="text-lg font-semibold border-b border-slate-700 pb-2">Rincian Pembagian & Nama Plot</h2>
+                
+                <!-- Plot 1 -->
+                <div class="bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded-r flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <input type="text" id="name1" value="Plot 1 (Kiri Atas)" class="bg-slate-900 border border-slate-700 text-blue-400 font-medium text-sm rounded px-2 py-1 w-full focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-slate-400 text-sm">Luas Area:</span>
+                        <span id="area1" class="text-xl font-bold font-mono text-white">0 m²</span>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <span class="text-slate-400 text-sm">Persentase:</span>
+                        <span id="perc1" class="text-sm font-mono text-blue-300">0%</span>
+                    </div>
+                </div>
+
+                <!-- Plot 2 -->
+                <div class="bg-emerald-900/20 border-l-4 border-emerald-500 p-3 rounded-r flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <input type="text" id="name2" value="Plot 2 (Kiri Bawah)" class="bg-slate-900 border border-slate-700 text-emerald-400 font-medium text-sm rounded px-2 py-1 w-full focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-slate-400 text-sm">Luas Area:</span>
+                        <span id="area2" class="text-xl font-bold font-mono text-white">0 m²</span>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <span class="text-slate-400 text-sm">Persentase:</span>
+                        <span id="perc2" class="text-sm font-mono text-emerald-300">0%</span>
+                    </div>
+                </div>
+
+                <!-- Plot 3 -->
+                <div class="bg-amber-900/20 border-l-4 border-amber-500 p-3 rounded-r flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <input type="text" id="name3" value="Plot 3 (Kanan Memanjang)" class="bg-slate-900 border border-slate-700 text-amber-400 font-medium text-sm rounded px-2 py-1 w-full focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-slate-400 text-sm">Luas Area:</span>
+                        <span id="area3" class="text-xl font-bold font-mono text-white">0 m²</span>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <span class="text-slate-400 text-sm">Persentase:</span>
+                        <span id="perc3" class="text-sm font-mono text-amber-300">0%</span>
+                    </div>
+                </div>
+                
+                <!-- Plot 4 (Jalan) -->
+                <div class="bg-slate-700/30 border-l-4 border-slate-500 p-3 rounded-r flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <input type="text" id="name4" value="Plot 4 (Jalan / Tengah)" class="bg-slate-900 border border-slate-700 text-slate-300 font-medium text-sm rounded px-2 py-1 w-full focus:outline-none focus:border-slate-500">
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-slate-400 text-sm">Luas Area:</span>
+                        <span id="area4" class="text-xl font-bold font-mono text-white">0 m²</span>
+                    </div>
+                    <div class="flex justify-between items-end mt-1">
+                        <span class="text-slate-400 text-sm">Persentase:</span>
+                        <span id="perc4" class="text-sm font-mono text-slate-300">0%</span>
+                    </div>
+                </div>
+
+                <div class="mt-auto">
+                    <button id="resetBtn" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors text-sm font-medium">
+                        Reset Posisi & Nama Titik
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('landCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        let state = {
+            scaleFactor: 1,
+            zoomLevel: 1,
+            panOffset: { x: 0, y: 0 },
+            corners: [],
+            splits: {
+                top1: 0.50, top2: 0.60,
+                bot1: 0.48, bot2: 0.58,
+                left1: 0.48,
+                inner1: 0.49
+            },
+            dragging: null, // {type: 'corner'|'split'|'pan', index|key, startX, startY}
+            hover: null,
+            pixelRatio: window.devicePixelRatio || 1
+        };
+
+        const HANDLE_RADIUS = 8;
+        const HIT_RADIUS = 15;
+
+        // Custom plot names state
+        let plotNames = {
+            1: "Plot 1 (Kiri Atas)",
+            2: "Plot 2 (Kiri Bawah)",
+            3: "Plot 3 (Kanan Memanjang)",
+            4: "Plot 4 (Jalan / Tengah)"
+        };
+
+        function initCorners() {
+            const w = canvas.width / state.pixelRatio;
+            const h = canvas.height / state.pixelRatio;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            state.zoomLevel = 1;
+            state.panOffset = { x: 0, y: 0 };
+
+            const maxMeters = 140; 
+            state.scaleFactor = maxMeters / Math.min(w, h);
+            
+            const meterCoords = [
+                { x: -18, y: -32 }, 
+                { x: 20, y: -25 },  
+                { x: 10, y: 16 },   
+                { x: -25, y: 23 }   
+            ];
+
+            state.corners = meterCoords.map(pt => ({
+                x: cx + (pt.x / state.scaleFactor),
+                y: cy + (pt.y / state.scaleFactor)
+            }));
+
+            // Calibration values matching ~30/30/30/10 target splits
+            state.splits = {
+                top1: 0.482, top2: 0.585,
+                bot1: 0.491, bot2: 0.592,
+                left1: 0.505,
+                inner1: 0.510
+            };
+        }
+
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width * state.pixelRatio;
+            canvas.height = rect.height * state.pixelRatio;
+            
+            if (state.corners.length === 0) {
+                initCorners();
+            }
+            render();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function lerpPoint(p1, p2, t) {
+            return {
+                x: p1.x + (p2.x - p1.x) * t,
+                y: p1.y + (p2.y - p1.y) * t
+            };
+        }
+
+        function distance(p1, p2) {
+            return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        }
+
+        function projectPointOnSegment(P, A, B) {
+            let v = { x: B.x - A.x, y: B.y - A.y };
+            let w = { x: P.x - A.x, y: P.y - A.y };
+            let dotWV = w.x * v.x + w.y * v.y;
+            let dotVV = v.x * v.x + v.y * v.y;
+            if (dotVV === 0) return 0;
+            let t = dotWV / dotVV;
+            return Math.max(0, Math.min(1, t)); 
+        }
+
+        function calcShoelaceArea(points) {
+            let area = 0;
+            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                area += (points[j].x + points[i].x) * (points[j].y - points[i].y);
+            }
+            return Math.abs(area / 2);
+        }
+
+        function toScreen(point) {
+            const cx = (canvas.width / state.pixelRatio) / 2;
+            const cy = (canvas.height / state.pixelRatio) / 2;
+            return {
+                x: (point.x - cx) * state.zoomLevel + cx + state.panOffset.x,
+                y: (point.y - cy) * state.zoomLevel + cy + state.panOffset.y
+            };
+        }
+
+        function toWorld(point) {
+            const cx = (canvas.width / state.pixelRatio) / 2;
+            const cy = (canvas.height / state.pixelRatio) / 2;
+            return {
+                x: (point.x - cx - state.panOffset.x) / state.zoomLevel + cx,
+                y: (point.y - cy - state.panOffset.y) / state.zoomLevel + cy
+            };
+        }
+
+        function render() {
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            ctx.setTransform(state.pixelRatio, 0, 0, state.pixelRatio, 0, 0);
+            const logicalW = w / state.pixelRatio;
+            const logicalH = h / state.pixelRatio;
+            ctx.clearRect(0, 0, logicalW, logicalH);
+
+            const [TL, TR, BR, BL] = state.corners;
+            const s = state.splits;
+            
+            const t1 = lerpPoint(TL, TR, s.top1);
+            const t2 = lerpPoint(TL, TR, s.top2);
+            const b1 = lerpPoint(BL, BR, s.bot1);
+            const b2 = lerpPoint(BL, BR, s.bot2);
+            const l1 = lerpPoint(TL, BL, s.left1);
+            const in1 = lerpPoint(t1, b1, s.inner1);
+
+            const plot1 = [TL, t1, in1, l1];             
+            const plot2 = [l1, in1, b1, BL];             
+            const plot4 = [t1, t2, b2, b1];              
+            const plot3 = [t2, TR, BR, b2];              
+
+            const splitPoints = [
+                { id: 'top1', p: t1, color: '#94a3b8' },
+                { id: 'top2', p: t2, color: '#94a3b8' },
+                { id: 'bot1', p: b1, color: '#94a3b8' },
+                { id: 'bot2', p: b2, color: '#94a3b8' },
+                { id: 'left1', p: l1, color: '#3b82f6' },
+                { id: 'inner1', p: in1, color: '#10b981' }
+            ];
+
+            const pArea1 = calcShoelaceArea(plot1);
+            const pArea2 = calcShoelaceArea(plot2);
+            const pArea3 = calcShoelaceArea(plot3);
+            const pArea4 = calcShoelaceArea(plot4);
+            const pTotalArea = pArea1 + pArea2 + pArea3 + pArea4;
+
+            const scaleFactor = state.scaleFactor;
+            const rArea1 = pArea1 * scaleFactor * scaleFactor;
+            const rArea2 = pArea2 * scaleFactor * scaleFactor;
+            const rArea3 = pArea3 * scaleFactor * scaleFactor;
+            const rArea4 = pArea4 * scaleFactor * scaleFactor;
+            const currentTotalArea = rArea1 + rArea2 + rArea3 + rArea4;
+
+            // Update UI Stats
+            document.getElementById('actualTotalArea').textContent = currentTotalArea.toFixed(1) + ' m²';
+            document.getElementById('area1').textContent = rArea1.toFixed(1) + ' m²';
+            document.getElementById('area2').textContent = rArea2.toFixed(1) + ' m²';
+            document.getElementById('area3').textContent = rArea3.toFixed(1) + ' m²';
+            document.getElementById('area4').textContent = rArea4.toFixed(1) + ' m²';
+            document.getElementById('perc1').textContent = ((rArea1 / currentTotalArea) * 100).toFixed(1) + '%';
+            document.getElementById('perc2').textContent = ((rArea2 / currentTotalArea) * 100).toFixed(1) + '%';
+            document.getElementById('perc3').textContent = ((rArea3 / currentTotalArea) * 100).toFixed(1) + '%';
+            document.getElementById('perc4').textContent = ((rArea4 / currentTotalArea) * 100).toFixed(1) + '%';
+
+            const drawPoly = (worldPoints, fill, stroke) => {
+                ctx.beginPath();
+                const startPoint = toScreen(worldPoints[0]);
+                ctx.moveTo(startPoint.x, startPoint.y);
+                for (let i = 1; i < worldPoints.length; i++) {
+                    const screenPt = toScreen(worldPoints[i]);
+                    ctx.lineTo(screenPt.x, screenPt.y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = fill;
+                ctx.fill();
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            };
+
+            drawPoly(plot1, 'rgba(59, 130, 246, 0.25)', 'rgba(59, 130, 246, 0.8)'); 
+            drawPoly(plot2, 'rgba(16, 185, 129, 0.25)', 'rgba(16, 185, 129, 0.8)'); 
+            drawPoly(plot3, 'rgba(245, 158, 11, 0.25)', 'rgba(245, 158, 11, 0.8)'); 
+            drawPoly(plot4, 'rgba(100, 116, 139, 0.25)', 'rgba(148, 163, 184, 0.8)'); 
+
+            // Outer Boundary
+            const scrTL = toScreen(TL), scrTR = toScreen(TR), scrBR = toScreen(BR), scrBL = toScreen(BL);
+            ctx.beginPath();
+            ctx.moveTo(scrTL.x, scrTL.y);
+            ctx.lineTo(scrTR.x, scrTR.y);
+            ctx.lineTo(scrBR.x, scrBR.y);
+            ctx.lineTo(scrBL.x, scrBL.y);
+            ctx.closePath();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            const drawTextWithBg = (text, x, y, bgCol, textCol) => {
+                ctx.font = "11px monospace";
+                const m = ctx.measureText(text);
+                const w = m.width;
+                const h = 14;
+                ctx.fillStyle = bgCol;
+                ctx.fillRect(x - w/2 - 2, y - h/2 - 2, w + 4, h + 4);
+                ctx.fillStyle = textCol;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(text, x, y);
+            };
+
+            const drawEdgeLength = (worldP1, worldP2, offsetDirection = 1, textColor, bgColor, forceOffsetPx = 0) => {
+                const scrP1 = toScreen(worldP1);
+                const scrP2 = toScreen(worldP2);
+                
+                const distPx = distance(worldP1, worldP2);
+                const distMeters = (distPx * scaleFactor).toFixed(1) + "m";
+                
+                if(distMeters === "0.0m") return;
+
+                const midScr = { x: (scrP1.x + scrP2.x)/2, y: (scrP1.y + scrP2.y)/2 };
+                
+                let dx = scrP2.x - scrP1.x;
+                let dy = scrP2.y - scrP1.y;
+                let angle = Math.atan2(dy, dx);
+                const len = distance(scrP1, scrP2);
+                
+                let offsetAmount = forceOffsetPx !== 0 ? forceOffsetPx : 20; 
+                let nx = -dy / len * offsetAmount * offsetDirection;
+                let ny = dx / len * offsetAmount * offsetDirection;
+
+                ctx.save();
+                ctx.translate(midScr.x + nx, midScr.y + ny);
+                if (angle > Math.PI/2 || angle < -Math.PI/2) angle += Math.PI;
+                ctx.rotate(angle);
+                drawTextWithBg(distMeters, 0, 0, bgColor, textColor);
+                ctx.restore();
+            };
+
+            // Outer Dimensions Labels
+            drawEdgeLength(TL, TR, -1, '#000000', 'rgba(255,255,255,0.9)', 25); 
+            drawEdgeLength(BR, BL, -1, '#000000', 'rgba(255,255,255,0.9)', 25); 
+            drawEdgeLength(BL, TL, -1, '#000000', 'rgba(255,255,255,0.9)', 25); 
+            drawEdgeLength(TR, BR, -1, '#000000', 'rgba(255,255,255,0.9)', 25); 
+
+            // Inner Section Dimension Labels
+            drawEdgeLength(TL, t1, 1, '#93c5fd', 'rgba(30,58,138,0.8)', 15);
+            drawEdgeLength(t1, in1, 1, '#93c5fd', 'rgba(30,58,138,0.8)', 15);
+            drawEdgeLength(in1, l1, 1, '#93c5fd', 'rgba(30,58,138,0.8)', 15);
+            drawEdgeLength(l1, TL, 1, '#93c5fd', 'rgba(30,58,138,0.8)', 15);
+
+            drawEdgeLength(l1, in1, 1, '#6ee7b7', 'rgba(6,78,59,0.8)', 15);
+            drawEdgeLength(in1, b1, 1, '#6ee7b7', 'rgba(6,78,59,0.8)', 15);
+            drawEdgeLength(b1, BL, 1, '#6ee7b7', 'rgba(6,78,59,0.8)', 15);
+            drawEdgeLength(BL, l1, 1, '#6ee7b7', 'rgba(6,78,59,0.8)', 15);
+
+            drawEdgeLength(t1, t2, 1, '#cbd5e1', 'rgba(51,65,85,0.8)', 15);
+            drawEdgeLength(t2, b2, 1, '#cbd5e1', 'rgba(51,65,85,0.8)', 15);
+            drawEdgeLength(b2, b1, 1, '#cbd5e1', 'rgba(51,65,85,0.8)', 15);
+            drawEdgeLength(b1, t1, 1, '#cbd5e1', 'rgba(51,65,85,0.8)', 15);
+
+            drawEdgeLength(t2, TR, 1, '#fde047', 'rgba(113,63,18,0.8)', 15);
+            drawEdgeLength(TR, BR, 1, '#fde047', 'rgba(113,63,18,0.8)', 15);
+            drawEdgeLength(BR, b2, 1, '#fde047', 'rgba(113,63,18,0.8)', 15);
+            drawEdgeLength(b2, t2, 1, '#fde047', 'rgba(113,63,18,0.8)', 15);
+
+            const drawHandle = (worldPt, color, isHovered) => {
+                const scrPt = toScreen(worldPt);
+                ctx.beginPath();
+                ctx.arc(scrPt.x, scrPt.y, isHovered ? HANDLE_RADIUS * 1.5 : HANDLE_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            };
+
+            state.corners.forEach((c, i) => {
+                const hover = state.hover && state.hover.type === 'corner' && state.hover.index === i;
+                drawHandle(c, '#64748b', hover); 
+            });
+
+            splitPoints.forEach(sp => {
+                const hover = state.hover && state.hover.type === 'split' && state.hover.key === sp.id;
+                drawHandle(sp.p, sp.color, hover);
+            });
+            
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function checkHit(scrPos) {
+            const worldPos = toWorld(scrPos);
+            const [TL, TR, BR, BL] = state.corners;
+            const s = state.splits;
+            
+            const t1 = lerpPoint(TL, TR, s.top1);
+            const t2 = lerpPoint(TL, TR, s.top2);
+            const b1 = lerpPoint(BL, BR, s.bot1);
+            const b2 = lerpPoint(BL, BR, s.bot2);
+            const l1 = lerpPoint(TL, BL, s.left1);
+            const in1 = lerpPoint(t1, b1, s.inner1);
+            
+            const splits = [
+                { key: 'top1', p: t1 },
+                { key: 'top2', p: t2 },
+                { key: 'bot1', p: b1 },
+                { key: 'bot2', p: b2 },
+                { key: 'left1', p: l1 },
+                { key: 'inner1', p: in1 }
+            ];
+
+            const effectiveHitRadius = HIT_RADIUS / state.zoomLevel;
+
+            for (let sp of splits) {
+                if (distance(worldPos, sp.p) < effectiveHitRadius) {
+                    return { type: 'split', key: sp.key };
+                }
+            }
+
+            for (let i = 0; i < state.corners.length; i++) {
+                if (distance(worldPos, state.corners[i]) < effectiveHitRadius) {
+                    return { type: 'corner', index: i };
+                }
+            }
+            return null;
+        }
+
+        function handlePointerDown(e) {
+            e.preventDefault();
+            const scrPos = getPointerPos(e);
+            const hit = checkHit(scrPos);
+            
+            if (hit) {
+                state.dragging = hit;
+                canvas.style.cursor = 'grabbing';
+            } else {
+                // If clicked on empty space, initiate panning
+                state.dragging = { type: 'pan', startX: scrPos.x, startY: scrPos.y };
+                canvas.style.cursor = 'move';
+            }
+        }
+
+        function handlePointerMove(e) {
+            e.preventDefault();
+            const scrPos = getPointerPos(e);
+            const worldPos = toWorld(scrPos);
+
+            if (state.dragging) {
+                if (state.dragging.type === 'corner') {
+                    state.corners[state.dragging.index] = { x: worldPos.x, y: worldPos.y };
+                } 
+                else if (state.dragging.type === 'split') {
+                    const key = state.dragging.key;
+                    let A, B, newT;
+                    const s = state.splits;
+                    const [TL, TR, BR, BL] = state.corners;
+                    
+                    if (key === 'top1' || key === 'top2') {
+                        A = TL; B = TR;
+                        newT = projectPointOnSegment(worldPos, A, B);
+                        if (key === 'top1') newT = Math.min(newT, s.top2 - 0.02);
+                        if (key === 'top2') newT = Math.max(newT, s.top1 + 0.02);
+                    } else if (key === 'bot1' || key === 'bot2') {
+                        A = BL; B = BR;
+                        newT = projectPointOnSegment(worldPos, A, B);
+                        if (key === 'bot1') newT = Math.min(newT, s.bot2 - 0.02);
+                        if (key === 'bot2') newT = Math.max(newT, s.bot1 + 0.02);
+                    } else if (key === 'left1') {
+                        A = TL; B = BL;
+                        newT = projectPointOnSegment(worldPos, A, B);
+                    } else if (key === 'inner1') {
+                        A = lerpPoint(TL, TR, s.top1);
+                        B = lerpPoint(BL, BR, s.bot1);
+                        newT = projectPointOnSegment(worldPos, A, B);
+                    }
+
+                    state.splits[key] = newT;
+                }
+                else if (state.dragging.type === 'pan') {
+                    const dx = scrPos.x - state.dragging.startX;
+                    const dy = scrPos.y - state.dragging.startY;
+                    state.panOffset.x += dx;
+                    state.panOffset.y += dy;
+                    state.dragging.startX = scrPos.x;
+                    state.dragging.startY = scrPos.y;
+                }
+                render();
+            } else {
+                const hit = checkHit(scrPos);
+                if (hit !== state.hover) {
+                    state.hover = hit;
+                    canvas.style.cursor = hit ? 'grab' : 'crosshair';
+                    render();
+                }
+            }
+        }
+
+        function handlePointerUp(e) {
+            if (state.dragging) {
+                e.preventDefault();
+                state.dragging = null;
+                canvas.style.cursor = state.hover ? 'grab' : 'crosshair';
+                render();
+            }
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', handlePointerDown, {passive: false});
+        canvas.addEventListener('touchmove', handlePointerMove, {passive: false});
+        window.addEventListener('touchend', handlePointerUp);
+
+        function zoom(direction, cx = null, cy = null) {
+            const zoomAmount = 0.1;
+            const minZoom = 0.5;
+            const maxZoom = 3;
+
+            const oldZoom = state.zoomLevel;
+            let newZoom = state.zoomLevel + (direction * zoomAmount);
+            newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+
+            if (oldZoom === newZoom) return;
+
+            if (cx !== null && cy !== null) {
+                const centerW = (canvas.width / state.pixelRatio) / 2;
+                const centerH = (canvas.height / state.pixelRatio) / 2;
+                
+                const worldX = (cx - centerW - state.panOffset.x) / oldZoom + centerW;
+                const worldY = (cy - centerH - state.panOffset.y) / oldZoom + centerH;
+                
+                state.panOffset.x = cx - centerW - (worldX - centerW) * newZoom;
+                state.panOffset.y = cy - centerH - (worldY - centerH) * newZoom;
+            }
+
+            state.zoomLevel = newZoom;
+            render();
+        }
+
+        document.getElementById('zoomInBtn').addEventListener('click', () => zoom(1));
+        document.getElementById('zoomOutBtn').addEventListener('click', () => zoom(-1));
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const pos = getPointerPos(e);
+            const direction = e.deltaY < 0 ? 1 : -1;
+            zoom(direction, pos.x, pos.y);
+        }, { passive: false });
+
+        // Plot renaming inputs listener
+        ['1', '2', '3', '4'].forEach(id => {
+            const inputEl = document.getElementById(`name${id}`);
+            inputEl.addEventListener('input', (e) => {
+                plotNames[id] = e.target.value;
+            });
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            initCorners();
+            plotNames = {
+                1: "Plot 1 (Kiri Atas)",
+                2: "Plot 2 (Kiri Bawah)",
+                3: "Plot 3 (Kanan Memanjang)",
+                4: "Plot 4 (Jalan / Tengah)"
+            };
+            document.getElementById('name1').value = plotNames[1];
+            document.getElementById('name2').value = plotNames[2];
+            document.getElementById('name3').value = plotNames[3];
+            document.getElementById('name4').value = plotNames[4];
+            render();
+        });
+
+        setTimeout(() => {
+            resizeCanvas();
+        }, 100);
+
+    </script>
+</body>
+</html>
